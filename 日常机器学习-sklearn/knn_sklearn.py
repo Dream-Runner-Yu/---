@@ -10,6 +10,15 @@ row_data = {
 
 movie_data = pd.DataFrame(row_data)
 print(movie_data.head(5))
+test = movie_data.iloc[:,1:3]
+
+
+print('----------test---------')
+print(test.min())
+print(test.max())
+print('------------------------')
+
+
 
 new_data = [24,67]
 
@@ -44,4 +53,42 @@ print(re.index[0])
 result = []
 result.append(re.index[0])
 print(result)
+
+# 0-1归一化
+
+def minmax(dataset):
+    minDF = dataset.min()
+    maxDF = dataset.max()
+    normSet = (dataset - minDF)/(maxDF - minDF)
+    return normSet
+
+
+#  切分数据集
+def randSplit(dataset, rate=0.9):
+    n = dataset.shape[0]
+    m = int(n*rate)
+    train = dataset.iloc[:m,:]
+    test = dataset.iloc[m:,:]
+    test.index = range(test.shape[0])
+    return train,test
+
+def datingClass(train, test,k):
+    n = train.shape[1] - 1
+    m = test.shape[0]
+    result = []
+    for i in range(m):
+        dist = list(((( train.iloc[:,:n] - test.iloc[i,:n] ) ** 2 ).sum(axis=1)**0.5 ))
+        dist_label = pd.DataFrame( {
+            'dist':dist,
+            'lable':(train.iloc[:, n] )
+        } )
+        dr = dist_label.sort_values(by='dist')[:k]
+        re = dr.loc[:,'label'].value_counts()
+        result.append(re.index[0])
+    result = pd.Series(result)
+    test['predict'] = result
+    acc = (test.iloc[:,-1] == test.iloc[:,-1]).mean()
+    return test
+
+
 
