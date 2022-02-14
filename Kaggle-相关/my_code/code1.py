@@ -55,8 +55,46 @@ for feature in features:
     (test[feature].value_counts().sort_index() / test_count ).plot()
     plt.show()
 
+# 多变量联合分布
+
+def combine_feature(df):
+    cols = df.columns
+    feature1 = df[cols[0]].astype(str).values.tolist()
+    feature2 = df[cols[1]].astype(str).values.tolist()
+    return pd.Series([feature1[i]+'&'+feature2[i] for i in range(df.shape[0])])
+
+cols = [features[0], features[1]]
+train_com = combine_feature(train[cols])
+
+train_dis = train_com.value_counts().sort_index()/train_count
+test_dis = combine_feature(test[cols]).value_counts().sort_index()/test_count
 
 
+# 创建新的index
+index_dis = pd.Series(train_dis.index.tolist() + test_dis.index.tolist()).drop_duplicates().sort_values()
 
+# 对缺失值填补为0
+(index_dis.map(train_dis).fillna(0)).plot()
+(index_dis.map(train_dis).fillna(0)).plot()
 
+# 绘图
+plt.legend(['train','test'])
+plt.xlabel('&'.join(cols))
+plt.ylabel('ratio')
+plt.show()
+
+n = len(features)
+for i in range(n-1):
+    for j in range(i+1, n):
+        cols = [features[i], features[j]]
+        print(cols)
+        train_dis = combine_feature(train[cols]).value_counts().sort_index()/train_count
+        test_dis = combine_feature(test[cols]).value_counts().sort_index()/test_count
+        index_dis = pd.Series(train_dis.index.tolist() + test_dis.index.tolist()).drop_duplicates().sort_values()
+        (index_dis.map(train_dis).fillna(0)).plot()
+        (index_dis.map(train_dis).fillna(0)).plot()
+        plt.legend(['train','test'])
+        plt.xlabel('&'.join(cols))
+        plt.ylabel('ratio')
+        plt.show()
 
