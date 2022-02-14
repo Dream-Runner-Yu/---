@@ -66,10 +66,26 @@ for iteration in range(iteration_number):
         print("epoch {},loss {}".format(iteration,loss.data))
 
 print(loss_list)
+#
+# plt.plot(range(iteration_number),loss_list)
+# plt.xlabel("iteration number")
+# plt.ylabel("Loss")
+# plt.show()
 
-plt.plot(range(iteration_number),loss_list)
-plt.xlabel("iteration number")
-plt.ylabel("Loss")
+
+predicted = model(car_price_tensor).data.numpy()
+plt.scatter(car_prices_array,number_of_car_sell_array, label = 'original data', color = 'red')
+plt.scatter(car_prices_array, predicted, label= "predicted data", color= "blue")
+
+plt.legend()
+plt.xlabel("Car Prince")
+plt.ylabel("Number of Car Sell")
+plt.title("original vs Predicted value")
 plt.show()
+
+
+
+
+
 
 
