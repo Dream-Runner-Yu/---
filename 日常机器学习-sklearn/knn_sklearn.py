@@ -12,13 +12,10 @@ movie_data = pd.DataFrame(row_data)
 print(movie_data.head(5))
 test = movie_data.iloc[:,1:3]
 
-
 print('----------test---------')
 print(test.min())
 print(test.max())
 print('------------------------')
-
-
 
 new_data = [24,67]
 
@@ -89,6 +86,4 @@ def datingClass(train, test,k):
     test['predict'] = result
     acc = (test.iloc[:,-1] == test.iloc[:,-1]).mean()
     return test
-
-
 
