@@ -7,37 +7,35 @@ import torch.nn as nn
 from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 from torch.autograd import Variable
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 
 
-class CNNModel(nn.Module):
-    def __init__(self):
-        super(CNNModel,self).__init__()
+# Create RNN Model
+class RNNModel(nn.Module):
+    def __init__(self, input_dim, hidden_dim, layer_dim, output_dim):
+        super(RNNModel, self).__init__()
 
-        self.cnn1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=5, stride=1, padding=0)
-        self.relu1 = nn.ReLU()
+        # Number of hidden dimensions
+        self.hidden_dim = hidden_dim
 
-        self.maxpool1 = nn.MaxPool2d(kernel_size=2)
+        # Number of hidden layers
+        self.layer_dim = layer_dim
 
-        self.cnn2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5, stride=1, padding=0)
-        self.relu2 = nn.ReLU()
+        # RNN
+        self.rnn = nn.RNN(input_dim, hidden_dim, layer_dim, batch_first=True, nonlinearity='relu')
 
-        self.maxpool2 = nn.MaxPool2d(kernel_size=2)
+        # Readout layer
+        self.fc = nn.Linear(hidden_dim, output_dim)
 
-        self.fc1 = nn.Linear(32*4*4, 10)
+    def forward(self, x):
+        # Initialize hidden state with zeros
+        h0 = Variable(torch.zeros(self.layer_dim, x.size(0), self.hidden_dim))
 
-    def forward(self,x):
-        out = self.cnn1(x)
-        out = self.relu1(out)
-        out = self.maxpool1(out)
-
-        out = self.cnn2(out)
-        out = self.relu2(out)
-        out = self.maxpool2(out)
-        out = out.view(out.size(0),-1)
-        out = self.fc1(out)
-
+        # One time step
+        out, hn = self.rnn(x, h0)
+        out = self.fc(out[:, -1, :])
         return out
+
 
 train = pd.read_csv(r"mnist/train.csv",dtype = np.float32)
 
@@ -59,55 +57,47 @@ targetsTrain = torch.from_numpy(targets_train).type(torch.LongTensor) # data typ
 featuresTest = torch.from_numpy(features_test)
 targetsTest = torch.from_numpy(targets_test).type(torch.LongTensor) # data type is long
 
+
+# ------
 # batch_size, epoch and iteration
+
 batch_size = 100
-n_iters = 10000
+n_iters = 8000
 num_epochs = n_iters / (len(features_train) / batch_size)
 num_epochs = int(num_epochs)
 
 # Pytorch train and test sets
-train = torch.utils.data.TensorDataset(featuresTrain,targetsTrain)
-test = torch.utils.data.TensorDataset(featuresTest,targetsTest)
+train = TensorDataset(featuresTrain, targetsTrain)
+test = TensorDataset(featuresTest, targetsTest)
 
 # data loader
-train_loader = DataLoader(train, batch_size = batch_size, shuffle = False)
-test_loader = DataLoader(test, batch_size = batch_size, shuffle = False)
+train_loader = DataLoader(train, batch_size=batch_size, shuffle=False)
+test_loader = DataLoader(test, batch_size=batch_size, shuffle=False)
 
+# Create RNN
+input_dim = 28  # input dimension
+hidden_dim = 100  # hidden layer dimension
+layer_dim = 1  # number of hidden layers
+output_dim = 10  # output dimension
 
-
-batch_size = 100
-n_iters = 2500
-num_epochs = n_iters / (len(features_train) / batch_size)
-num_epochs = int(num_epochs)
-
-# Pytorch train and test sets
-train = torch.utils.data.TensorDataset(featuresTrain, targetsTrain)
-test = torch.utils.data.TensorDataset(featuresTest, targetsTest)
-
-# data loader
-train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=False)
-test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=False)
-
-# Create CNN
-model = CNNModel()
+model = RNNModel(input_dim, hidden_dim, layer_dim, output_dim)
 
 # Cross Entropy Loss
 error = nn.CrossEntropyLoss()
 
 # SGD Optimizer
-learning_rate = 0.1
+learning_rate = 0.05
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
-# CNN model training
-count = 0
+seq_dim = 28
 loss_list = []
 iteration_list = []
 accuracy_list = []
-
+count = 0
 for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):
 
-        train = Variable(images.view(-1, 1, 28, 28))
+        train = Variable(images.view(-1, seq_dim, input_dim))
         labels = Variable(labels)
 
         # Clear gradients
@@ -127,22 +117,22 @@ for epoch in range(num_epochs):
 
         count += 1
 
-        if count % 50 == 0:
+        if count % 250 == 0:
             # Calculate Accuracy
             correct = 0
             total = 0
             # Iterate through test dataset
             for images, labels in test_loader:
-                test = Variable(images.view(100, 1, 28, 28))
+                images = Variable(images.view(-1, seq_dim, input_dim))
 
                 # Forward propagation
-                outputs = model(test)
+                outputs = model(images)
 
                 # Get predictions from the maximum value
                 predicted = torch.max(outputs.data, 1)[1]
 
                 # Total number of labels
-                total += len(labels)
+                total += labels.size(0)
 
                 correct += (predicted == labels).sum()
 
@@ -152,23 +142,6 @@ for epoch in range(num_epochs):
             loss_list.append(loss.data)
             iteration_list.append(count)
             accuracy_list.append(accuracy)
-        if count % 500 == 0:
-            # Print Loss
-            print('Iteration: {}  Loss: {}  Accuracy: {} %'.format(count, loss.data, accuracy))
-
-# visualization loss
-plt.plot(iteration_list,loss_list)
-plt.xlabel("Number of iteration")
-plt.ylabel("Loss")
-plt.title("CNN: Loss vs Number of iteration")
-plt.show()
-
-# visualization accuracy
-plt.plot(iteration_list,accuracy_list,color = "red")
-plt.xlabel("Number of iteration")
-plt.ylabel("Accuracy")
-plt.title("CNN: Accuracy vs Number of iteration")
-plt.show()
-
-
-
+            if count % 500 == 0:
+                # Print Loss
+                print('Iteration: {}  Loss: {}  Accuracy: {} %'.format(count, loss.data, accuracy))
