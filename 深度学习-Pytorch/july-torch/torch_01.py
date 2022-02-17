@@ -24,12 +24,3 @@ out = torch.empty(5,3)
 
 # y += x
 y.add_(x)
-
-
-
-
-
-
-
-
-
