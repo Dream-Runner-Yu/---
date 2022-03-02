@@ -1,26 +1,20 @@
-import torch
+class WordsFrequency:
 
-a = torch.empty(5,3)
+    def __init__(self, book: List[str]):
+        # self.data = Counter(book)
+        self.data = {}
+        for i in book:
+            if i not in self.data:
+                self.data[i] = 1
+            else:
+                self.data[i] += 1
 
-x = torch.rand(5,3)
 
-zero = torch.zeros(5,3,dtype=torch.long)
+    def get(self, word: str) -> int:
+        return self.data[word] if word in self.data else 0
 
-# x.types
 
-x = torch.tensor([5,5,3])
 
-x = x.new_ones(5,3,dtype=torch.double)
-
-torch.rand_like(x,dtype=torch.float)
-
-y = torch.rand(5,3)
-
-x + y
-
-torch.add(x,y)
-
-out = torch.empty(5,3)
-
-# y += x
-y.add_(x)
+# Your WordsFrequency object will be instantiated and called as such:
+# obj = WordsFrequency(book)
+# param_1 = obj.get(word)
